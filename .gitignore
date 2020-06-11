@@ -1,0 +1,77 @@
+# Prerequisites
+*.d
+
+# Object files
+*.crf
+*.o
+*.ko
+*.obj
+*.elf
+*.lnp
+*.htm
+*.build_log
+*.0
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+#*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# zigbee
+*.r51
+*.s51
+!chipcon_cstartup.s51
+!OSAL_Math.s51
+*.d51
+*.lst
+*.pbi
+*.cout
+*.browse
+*.pbd
+*.wsdt
+*.dep
+*.cof
+*.mcs
+
+# PCB
+*.Zip
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+

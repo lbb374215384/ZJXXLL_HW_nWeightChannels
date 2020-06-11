@@ -1,0 +1,172 @@
+/* Includes ------------------------------------------------------------------*/
+#include "i2c_pcf8563.h"
+#include "main.h"
+
+/*********************************************************************
+ * MACROS
+ */
+ 
+/*********************************************************************
+ * TYPEDEFS
+ */
+
+/*********************************************************************
+ * CONSTANTS
+ */
+
+/*********************************************************************
+ * GLOBAL VARIABLES
+ */
+
+/*********************************************************************
+ * EXTERNAL VARIABLES
+ */
+
+/*********************************************************************
+ * EXTERNAL FUNCTIONS
+ */
+
+/*********************************************************************
+ * LOCAL VARIABLES
+ */
+
+I2C_HandleTypeDef I2c1Handle;
+
+/*********************************************************************
+ * @fn     void I2C1_PCF8563_Init(void)
+ *
+ * @brief  rtc外部时钟模块I2C初始化
+ *          
+ * @param  none
+ *         
+ * @return none
+ *                        
+ */
+void I2C1_PCF8563_Init(void)
+{
+	UTCTimeStruct UTCC;
+	
+  I2c1Handle.Instance             = I2C1;
+  I2c1Handle.Init.Timing          = 0x2000090E;
+  I2c1Handle.Init.OwnAddress1     = 0xA2;
+  I2c1Handle.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
+  I2c1Handle.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  I2c1Handle.Init.OwnAddress2     = 0xFF;
+  I2c1Handle.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  I2c1Handle.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
+  
+  if(HAL_I2C_Init(&I2c1Handle) != HAL_OK)
+  {
+		printf("I2C1_PCF8563_Init Err\r\n");
+  }
+	
+//	UTCC.year = 2019;
+//	UTCC.month = 10;
+//	UTCC.day = 10;
+//	UTCC.hour = 13;
+//	UTCC.minutes =6;
+//	UTCC.seconds = 0;
+//	UTCC.week = 4;
+//  I2C1_PCF8563_SetUTCTime(UTCC);
+	
+//	I2C1_PCF8563_GetUTCTime( &UTCC);
+//	
+
+	
+}
+
+/*********************************************************************
+ * @fn     void I2C1_PCF8563_SetUTCTime( UTCTimeStruct utc)
+ *
+ * @brief  rtc外部时钟模块设置时间
+ *          
+ * @param  none
+ *         
+ * @return none
+ *                        
+ */
+void I2C1_PCF8563_SetUTCTime( UTCTimeStruct utc)
+{
+	uint8_t tdata = 0;
+	UTCTimeStruct BCD_utc;
+
+	BCD_utc.seconds = RTC_ByteToBcd2(utc.seconds);
+  BCD_utc.minutes = RTC_ByteToBcd2(utc.minutes);
+  BCD_utc.hour    = RTC_ByteToBcd2(utc.hour);	
+	BCD_utc.day     = RTC_ByteToBcd2(utc.day);
+	BCD_utc.week    = utc.week;//RTC_ByteToBcd2(utc.week);
+	BCD_utc.month   = RTC_ByteToBcd2(utc.month);
+	BCD_utc.year    = RTC_ByteToBcd2(utc.year-2000);
+	
+	HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, SECOND_DATA_BUF, I2C_MEMADD_SIZE_8BIT, (uint8_t *)&BCD_utc.seconds, 4, 0xFFFFFFFFU);
+	HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, WEEK_DATA_BUF,   I2C_MEMADD_SIZE_8BIT, (uint8_t *)&BCD_utc.week,    1, 0xFFFFFFFFU);
+	HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, MONTH_DATA_BUF,  I2C_MEMADD_SIZE_8BIT, (uint8_t *)&BCD_utc.month,   1, 0xFFFFFFFFU);
+	HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, YEAR_DATA_BUF,   I2C_MEMADD_SIZE_8BIT, (uint8_t *)&BCD_utc.year,    1, 0xFFFFFFFFU);
+	
+	tdata=0;
+  HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, CTRL_REG1, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tdata, 1, 0xFFFFFFFFU);
+}
+
+
+/*********************************************************************
+ * @fn     void I2C1_PCF8563_SetUTCTime( UTCTimeStruct utc)
+ *
+ * @brief  rtc外部时钟模块设置时间
+ *          
+ * @param  none
+ *         
+ * @return none
+ *                        
+ */
+
+void I2C1_PCF8563_GetUTCTime( UTCTimeStruct *utc )
+{
+	//UTCTimeStruct utc;
+	uint8_t tdata =0;
+  uint8_t rtcbuf[7];
+	
+	tdata = 0x02;
+	memset(rtcbuf, 0x00, 7);
+	
+	HAL_I2C_Master_Transmit(&I2c1Handle,0xA2,(uint8_t*)&tdata, 1, 0xFFFFFFFFU);
+	HAL_I2C_Master_Receive(&I2c1Handle, 0xA3, rtcbuf, 7, 0xFFFFFFFFU);
+	
+	utc->seconds = RTC_Bcd2ToByte(rtcbuf[0] & 0x7f);		//get second data
+  utc->minutes = RTC_Bcd2ToByte(rtcbuf[1] & 0x7f);		//get minute data
+	utc->hour= RTC_Bcd2ToByte(rtcbuf[2] & 0x3f);		//get hour data
+	utc->day = RTC_Bcd2ToByte(rtcbuf[3] & 0x3f);		//get day data
+	utc->week = rtcbuf[4]&0x07;  
+	utc->month = RTC_Bcd2ToByte(rtcbuf[5] & 0x1f);		//get month data
+	utc->year = RTC_Bcd2ToByte(rtcbuf[6])+2000U;		//get year data
+}
+	
+
+
+/*********************************************************************
+ * @fn     uint8_t I2C1_PCF8563_Get_VLstatus( void )
+ *
+ * @brief  判断PCF8563S是否掉电
+ *          
+ * @param  none
+ *         
+ * @return none
+ *                        
+ */
+uint8_t I2C1_PCF8563_Get_VLstatus( void )
+{
+	//UTCTimeStruct utc;
+	uint8_t vl_status = 0xFF,tdata=0;
+
+	tdata = 0x02;
+
+	HAL_I2C_Mem_Write(&I2c1Handle, 0xA2, 0x02, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tdata, 1, 0xFFFFFFFFU);
+	HAL_I2C_Mem_Read(&I2c1Handle,  0xA3, SECOND_DATA_BUF, I2C_MEMADD_SIZE_8BIT, &vl_status, 1, 0xFFFFFFFFU);
+	
+	if( vl_status & 0x80 )
+		return 1;
+	else
+		return 0;
+}
+
+
+

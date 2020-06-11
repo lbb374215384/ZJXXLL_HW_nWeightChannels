@@ -1,0 +1,36 @@
+/**************************************************************************************************
+  Filename:       AppTask.h
+  Revised:        $Date: 2015-9-28  $
+  Revision:       $Revision: V1.1  $
+  User:           $User:Asong      $
+  Description:    任务相关函数
+
+**************************************************************************************************/
+#ifndef APPTASK_H
+#define APPTASK_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/*********************************************************************/
+//#include "Global.h"
+#include "TimeEvent.h"
+
+extern void PeriodCurrentDectEvt2(void);
+extern void PeriodCurrentDectEvt(void);
+extern void ADC_DMA_Start_Evt( void );
+
+extern void DectStepTimeOutEvt(void);
+extern void ErrCodeStatisticDisplay_Evt(void);
+extern void LogApiInputData_Handle(void);
+
+	
+/*********************************************************************/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

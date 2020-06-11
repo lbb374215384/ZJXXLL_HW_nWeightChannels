@@ -1,0 +1,43 @@
+/*
+*********************************************************************************************************
+*	
+*	CH374文件系统库文件使用说明	                                  
+*
+*	Copyright (C), 2010-2011, 安富莱电子 www.armfly.com
+*
+*********************************************************************************************************
+*/
+
+1.库文件来源
+	CH374文件操作函数库来源于芯片厂商官方网站 http://wch.cn
+		原始文件名为：CH374LIB.ZIP
+		发布日期    ：2008-12-08
+
+	开发板光盘上收录了该文件，文件名为：CH374LIB(2008-12-08).ZIP
+	压缩包解压后，可以找到和开发工具以及MCU类型对应的库文件。
+	
+	适用于KEIL的库：\CH374LIB(2008-12-08)\ARM32\LIBM_CX\CH374HFM.LIB
+	
+	适用于IAR的库：\CH374LIB(2008-12-08)\ARM32\LIBU_CX5\CH374HFU.R79
+
+2.在工程中添加库的方法：
+【KEIL】直接点 "Add file to Group..."，将库CH374HFM.LIB加入工程即可。
+【IAR】 在工程设置-Linker选项-Library下添加如下指令:
+		$PROJ_DIR$\..\..\Libraries\CH374\IAR\CH374HFU.R79
+
+3.CH374HFM.H 文件修改说明:
+【KEIL】
+(1) 解决编译错误问题。
+	/* 外部RAM的磁盘数据缓冲区,缓冲区长度为一个扇区的长度,起始地址必须为8字节边界地址 */
+	__align(8)	UINT8  DISK_BASE_BUF[ DISK_BASE_BUF_LEN ] _at_ DISK_BASE_BUF_ADDR;
+	修改为：
+	UINT8  DISK_BASE_BUF[ DISK_BASE_BUF_LEN ];
+
+【IAR】
+(1) 为了和KEIL下的库的头文件保持源代码的统一，将IAR下的CH374HFU.H更名为CH374HFM.H
+(2) 解决编译错误问题。
+	/* 外部RAM的磁盘数据缓冲区,缓冲区长度为一个扇区的长度,起始地址必须为8字节边界地址 */
+	UINT8  DISK_BASE_BUF[ DISK_BASE_BUF_LEN ] @ DISK_BASE_BUF_ADDR;
+	修改为:
+	UINT8  DISK_BASE_BUF[ DISK_BASE_BUF_LEN ];
+	
