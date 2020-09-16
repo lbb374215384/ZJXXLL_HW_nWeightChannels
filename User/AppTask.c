@@ -15,13 +15,6 @@
 /*********************************************************************
  * TYPEDEFS
  */
-#define PRESS    0x01
-#define RELEASE  0xFF
-
-uint8_t DetectState = 0;
-
-//uint8_t DetectCount = 0;
-//float Shunt_voltage[20];
 
 /*********************************************************************
  * CONSTANTS

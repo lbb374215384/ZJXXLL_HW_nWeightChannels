@@ -31,13 +31,14 @@
  * GLOBAL VARIABLES
  */
 UART_HandleTypeDef Uart5Handle;
-UART_HandleTypeDef UartHandle[5];//5路串口作为秤盘通信口
-uartBuf_t    UartPort[6];        //5路串口接收发送缓冲
-uartISRCfg_t isrCfg[5];          //主串口结构
+UART_HandleTypeDef UartHandle[6];//5路串口作为秤盘通信口
+uartBuf_t    UartPort;        //5路串口接收发送缓冲
+uartISRCfg_t isrCfg[6];          //主串口结构
 
 mainISRCfg_t isrMainCfg;
-
+#ifdef DMA_TX	
 DMA_HandleTypeDef hdma_usart5_tx;
+#endif
 DMA_HandleTypeDef hdma_usart5_rx;
 
 
@@ -66,8 +67,8 @@ DMA_HandleTypeDef hdma_usart5_rx;
  **************************************************************************************************/
 void USART_Main_Config(void)
 {	
-	Uart5Handle.pRxBuffPtr = UartPort[5].rxBuf;
-	Uart5Handle.pTxBuffPtr = UartPort[5].txBuf;
+	Uart5Handle.pRxBuffPtr = UartPort.rxBuf;
+	Uart5Handle.pTxBuffPtr = UartPort.txBuf;
 	
 	Uart5Handle.RxXferSize = BufSize;
 	Uart5Handle.TxXferSize = BufSize;
@@ -121,11 +122,17 @@ void UARTx_Config( USART_TypeDef* usart, UART_HandleTypeDef *huart ,uint8_t inde
       - BaudRate = 9600 baud
       - Hardware flow control disabled (RTS and CTS signals) */
 	
-	huart->pRxBuffPtr = UartPort[index].rxBuf;
-	huart->pTxBuffPtr = UartPort[index].txBuf;
+//	huart->pRxBuffPtr = UartPort[index].rxBuf;
+//	huart->pTxBuffPtr = UartPort[index].txBuf;
 	
-	huart->RxXferSize = BufSize;
-	huart->TxXferSize = BufSize;
+//	huart->RxXferSize = BufSize;
+//	huart->TxXferSize = BufSize;
+	
+//	if(usart == USART5)
+//	{
+//		huart->pRxBuffPtr = UartPort.rxBuf;
+//	  huart->pTxBuffPtr = UartPort.txBuf;
+//	}
 
   huart->Instance        = usart;
   huart->Init.BaudRate   = UART_DEFAULT_BAUDRATE;//默认配置宏定义
@@ -173,6 +180,7 @@ void UartScalesInit(void)
   UARTx_Config( USART6, &UartHandle[2],2 );//&UartHandle[0]
 	UARTx_Config( USART3, &UartHandle[3],3 );//&UartHandle[3]
   UARTx_Config( USART1, &UartHandle[4],4 );//&UartHandle[1]
+	UARTx_Config( USART5, &UartHandle[5],5 );//&UartHandle[1]
 	
 }
 /*****************************************************************************/
@@ -288,7 +296,7 @@ void UartTimeOut_handle(void)
 {
 	uint8_t i=0;
 
-	for( i = 0; i<5; i++)
+	for( i = 0; i<6; i++)
 	{
 		if( isrCfg[i].rxBusy == 1 )
 		{
@@ -336,13 +344,12 @@ void UsartReceive_IDLE(UART_HandleTypeDef *huart)
   */
 void HAL_UART12346_IRQHandler(UART_HandleTypeDef *huart, uint8_t index )
 {
-  uint32_t isrflags   = READ_REG(huart->Instance->ISR);
+	uint32_t isrflags   = READ_REG(huart->Instance->ISR);
   uint32_t cr1its     = READ_REG(huart->Instance->CR1);
-  uint32_t cr3its = 0;
-  uint32_t errorflags = 0;
+  uint32_t cr3its     = READ_REG(huart->Instance->CR3);
 	
-	//uint8_t   tmp;
-  //uint16_t  uhMask = huart->Mask;
+  uint32_t errorflags = 0;
+
   uint16_t  uhdata;
 	
 	/* UART in mode Receiver ---------------------------------------------------*/
@@ -398,15 +405,110 @@ void HAL_UART12346_IRQHandler(UART_HandleTypeDef *huart, uint8_t index )
        (((cr1its & USART_CR1_RXNEIE) != RESET) || ((cr3its & USART_CR3_EIE) != RESET)))
     {
       __HAL_UART_CLEAR_IT(huart, UART_CLEAR_OREF);
-		  uhdata = (uint16_t) READ_REG(huart->Instance->RDR);
-			(void)uhdata;
       huart->ErrorCode |= HAL_UART_ERROR_ORE;
     }
-    //return;
-  } /* End if some error occurs */
+		
+		/* Call UART Error Call back function if need be --------------------------*/
+    if(huart->ErrorCode != HAL_UART_ERROR_NONE)
+    {
+      /* UART in mode Receiver ---------------------------------------------------*/
+      if(((isrflags & USART_ISR_RXNE) != RESET) && ((cr1its & USART_CR1_RXNEIE) != RESET))
+      {
+				//*husart->pRxBuffPtr++ = (uint8_t)(husart->Instance->RDR & (uint8_t)uhMask);
+				 uhdata = (uint16_t) READ_REG(huart->Instance->RDR);
+				 // tmp = (uint8_t)(uhdata & (uint8_t)uhMask);
+				 isrCfg[index].rxBuf[isrCfg[index].rxTail] = (uint8_t)(uhdata);
+				 if (++isrCfg[index].rxTail >= HAL_UART_ISR_RX_MAX)
+				 {
+					 isrCfg[index].rxTail = 0;
+				 }
+				 isrCfg[index].frameIdleCount = TimeOutCount;
+				 isrCfg[index].rxBusy = 1;				
+      }
 
+      /* If Overrun error occurs, or if any error occurs in DMA mode reception,
+         consider error as blocking */
+      if (((huart->ErrorCode & HAL_UART_ERROR_ORE) != RESET) ||
+          (HAL_IS_BIT_SET(huart->Instance->CR3, USART_CR3_DMAR)))
+      {  
+        /* Blocking error : transfer is aborted
+           Set the UART state ready to be able to start again the process,
+           Disable Rx Interrupts, and disable Rx DMA request, if ongoing */
+//        UART_EndRxTransfer(huart);
+				/* Disable RXNE, PE and ERR (Frame error, noise error, overrun error) interrupts */
+				CLEAR_BIT(huart->Instance->CR1, (USART_CR1_RXNEIE | USART_CR1_PEIE));
+				CLEAR_BIT(huart->Instance->CR3, USART_CR3_EIE);
+				/* At end of Rx process, restore huart->RxState to Ready */
+				huart->RxState = HAL_UART_STATE_READY;
+				
+//        /* Disable the UART DMA Rx request if enabled */
+//        if (HAL_IS_BIT_SET(huart->Instance->CR3, USART_CR3_DMAR))
+//        {
+//          CLEAR_BIT(huart->Instance->CR3, USART_CR3_DMAR);
+
+//          /* Abort the UART DMA Rx channel */
+//          if(huart->hdmarx != NULL)
+//          {
+//            /* Set the UART DMA Abort callback : 
+//               will lead to call HAL_UART_ErrorCallback() at end of DMA abort procedure */
+//            huart->hdmarx->XferAbortCallback = UART_DMAAbortOnError;
+
+//            /* Abort DMA RX */
+//            if(HAL_DMA_Abort_IT(huart->hdmarx) != HAL_OK)
+//            {
+//              /* Call Directly huart->hdmarx->XferAbortCallback function in case of error */
+//              huart->hdmarx->XferAbortCallback(huart->hdmarx);
+//            }
+//          }
+//          else
+//          {
+            /* Call user error callback */
+//            HAL_UART_ErrorCallback(huart);
+//						UARTx_Config( huart->Instance, huart ,index)；
+//          }
+//        }
+//        else
+//        {
+          /* Call user error callback */
+         // HAL_UART_ErrorCallback(huart);
+					UARTx_Config( huart->Instance, huart ,index);
+//        }
+      }
+      else
+      {
+        /* Non Blocking error : transfer could go on. 
+           Error is notified to user through user error callback */
+//        HAL_UART_ErrorCallback(huart);
+        huart->ErrorCode = HAL_UART_ERROR_NONE;
+      }
+    }
+    return;
+  } /* End if some error occurs */
+	
+	 /* UART in mode Transmitter ------------------------------------------------*/
+  if(((isrflags & USART_ISR_TXE) != RESET) && ((cr1its & USART_CR1_TXEIE) != RESET))
+  {
+//		UART_Transmit_IT(huart);
+		/* Disable the UART Transmit Data Register Empty Interrupt */
+    CLEAR_BIT(huart->Instance->CR1, USART_CR1_TXEIE);
+    /* Enable the UART Transmit Complete Interrupt */
+    SET_BIT(huart->Instance->CR1, USART_CR1_TCIE);
+    return;
+  }
+
+  /* UART in mode Transmitter (transmission end) -----------------------------*/
+  if(((isrflags & USART_ISR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET))
+  {
+//    UART_EndTransmit_IT(huart);
+		  /* Disable the UART Transmit Complete Interrupt */
+		CLEAR_BIT(huart->Instance->CR1, USART_CR1_TCIE);
+		/* Tx process is ended, restore huart->gState to Ready */
+		huart->gState = HAL_UART_STATE_READY;
+    return;
+  }
 }
 
+#ifdef DMA_TR
 /**
   * @brief Handle UART1 interrupt request.  RX DMA  TX NULL
   * @param huart UART1 handle.
@@ -464,12 +566,12 @@ void HAL_UART5_IRQHandler(UART_HandleTypeDef *huart)
     /* Call UART Error Call back function if need be --------------------------*/
     if (huart->ErrorCode != HAL_UART_ERROR_NONE)
     {
-      /* UART in mode Receiver ---------------------------------------------------*/
-      if (((isrflags & USART_ISR_RXNE) != 0U) && ((cr1its & USART_CR1_RXNEIE) != 0U))
-      {
-				/* Clear RXNE interrupt flag */
-				__HAL_UART_SEND_REQ(huart, UART_RXDATA_FLUSH_REQUEST);
-      }
+//      /* UART in mode Receiver ---------------------------------------------------*/
+//      if (((isrflags & USART_ISR_RXNE) != 0U) && ((cr1its & USART_CR1_RXNEIE) != 0U))
+//      {
+//				/* Clear RXNE interrupt flag */
+//				__HAL_UART_SEND_REQ(huart, UART_RXDATA_FLUSH_REQUEST);
+//      }
 
       /* If Overrun error occurs, or if any error occurs in DMA mode reception,
          consider error as blocking */
@@ -502,24 +604,14 @@ void HAL_UART5_IRQHandler(UART_HandleTypeDef *huart)
 		return;
 	}
 	
-//	/* UART in mode Transmitter (transmission end) -----------------------------*/
-//  if (((isrflags & USART_ISR_TC) != 0U) && ((cr1its & USART_CR1_TCIE) != 0U))
-//  {
-//     CLEAR_BIT(huart->Instance->CR1, USART_CR1_TCIE);
-//		 /* Tx process is ended, restore huart->gState to Ready */
-//		
-//     huart->gState = HAL_UART_STATE_READY;
-//    return;
-//  }
-	
-	  /* UART in mode Transmitter (transmission end) -----------------------------*/
+	 /* UART in mode Transmitter (transmission end) -----------------------------*/
   if(((isrflags & USART_ISR_TC) != RESET) && ((cr1its & USART_CR1_TCIE) != RESET))
   {
     UART_EndTransmit_IT(huart);
     return;
   }
 }
-
+#endif
 
 ///**
 //  * @brief  Tx Transfer completed callback

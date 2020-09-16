@@ -66,9 +66,9 @@ extern "C"
 
 
 extern UART_HandleTypeDef Uart5Handle;
-extern UART_HandleTypeDef UartHandle[5];//5路串口作为秤盘通信口
-extern uartBuf_t    UartPort[6];        //5路串口接收发送缓冲
-extern uartISRCfg_t isrCfg[5];          //主串口结构
+extern UART_HandleTypeDef UartHandle[6];//5路串口作为秤盘通信口
+extern uartBuf_t    UartPort;        //5路串口接收发送缓冲
+extern uartISRCfg_t isrCfg[6];          //主串口结构
 
 extern DMA_HandleTypeDef hdma_usart5_tx;
 extern DMA_HandleTypeDef hdma_usart5_rx;

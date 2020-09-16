@@ -148,7 +148,8 @@ void USART3_6_IRQHandler(void)//
   HAL_UART12346_IRQHandler(&UartHandle[2],2 );//USART6
 	HAL_UART12346_IRQHandler(&UartHandle[3],3 );//USART3
 	
-	HAL_UART5_IRQHandler(&Uart5Handle);//USART5
+	HAL_UART12346_IRQHandler(&UartHandle[5],5 );//USART5
+	//HAL_UART5_IRQHandler(&Uart5Handle);//USART5
 }
 
 
@@ -190,6 +191,7 @@ void TIM6_IRQHandler(void)
   }
 }
 
+#ifdef DMA_TR
 /**
 * @brief  This function handles DMA1_Channel1_IRQHandler interrupt request.
 * @param  None
@@ -210,8 +212,7 @@ void DMA1_Channel2_3_IRQHandler(void)
 	//HAL_DMA_IRQHandler(Uart1Handle.hdmarx);
   HAL_DMA_IRQHandler(Uart5Handle.hdmatx);
 }
-
-
+#endif
 
 /**
   * @brief  This function handles TIM14 global interrupt request.

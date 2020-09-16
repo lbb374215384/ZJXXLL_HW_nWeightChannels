@@ -1,6 +1,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "TimeEvent.h"
-#include "AppTask.h"
+//#include "AppTask.h"
 #include "Variable.h"
 #include "UartTask.h"
 

@@ -70,7 +70,7 @@ void IWDG_Config(void)
      So Set Reload Counter Value = (1 * uwLsiFreq) / 32 */
   IwdgHandle.Instance = IWDG;
   IwdgHandle.Init.Prescaler = IWDG_PRESCALER_32;
-  IwdgHandle.Init.Reload = 70;//(uwLsiFreq / 32);
+  IwdgHandle.Init.Reload = 100;//(uwLsiFreq / 32);
   IwdgHandle.Init.Window = IWDG_WINDOW_DISABLE;
 
   if(HAL_IWDG_Init(&IwdgHandle) != HAL_OK)

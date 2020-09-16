@@ -332,7 +332,7 @@
             <v6WtE>0</v6WtE>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>STM32F030xC,xUSE_HAL_DRIVER,U3print_Debug,DMA_TX</Define>
+              <Define>STM32F030xC,xUSE_HAL_DRIVER,U3print_Debug,xDMA_TR,WDT</Define>
               <Undefine></Undefine>
               <IncludePath>..\User;..\User\Inc;..\Drivers\CMSIS\Device\ST\STM32F0xx\Include;..\Drivers\STM32F0xx_HAL_Driver\Inc;..\User\BSP;..\User\BSP\lis3dh_STdC\driver;..\User\BSP\lis3dh_STdC\example;..\User\BSP\CH374LIB</IncludePath>
             </VariousControls>
@@ -552,11 +552,6 @@
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\User\Main\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>AppTask.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\User\AppTask.c</FilePath>
             </File>
             <File>
               <FileName>TimeEvent.c</FileName>

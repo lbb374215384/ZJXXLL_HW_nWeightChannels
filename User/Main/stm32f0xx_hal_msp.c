@@ -75,7 +75,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 
 		__HAL_RCC_GPIOB_CLK_ENABLE();
 		__HAL_RCC_USART5_CLK_ENABLE();
+#ifdef DMA_TR			
 		__HAL_RCC_DMA1_CLK_ENABLE();
+#endif
     /**USART5 GPIO Configuration    
     PB3     ------> USART5_TX
     PB4     ------> USART5_RX 
@@ -87,7 +89,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     GPIO_InitStruct.Alternate = GPIO_AF4_USART5;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-		
+#ifdef DMA_TR		
      /* Configure the DMA handler for reception process */
 		hdma_usart5_tx.Instance                 = DMA1_Channel2;
 		hdma_usart5_tx.Init.Direction           = DMA_MEMORY_TO_PERIPH;
@@ -104,7 +106,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 		__HAL_DMA1_REMAP(HAL_DMA1_CH2_USART5_TX);
     __HAL_LINKDMA(huart,hdmatx,hdma_usart5_tx);
 		
-		
 		/* Configure the DMA handler for reception process */
 		hdma_usart5_rx.Instance                 = DMA1_Channel1;
 		hdma_usart5_rx.Init.Direction           = DMA_PERIPH_TO_MEMORY;
@@ -120,8 +121,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
     }
     __HAL_DMA1_REMAP(HAL_DMA1_CH1_USART5_RX);
     __HAL_LINKDMA(huart,hdmarx,hdma_usart5_rx);
-			
-			
+				
 		__HAL_UART_CLEAR_FLAG(huart, UART_FLAG_IDLE);
 		__HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
 		
@@ -130,8 +130,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
 		
 		HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 1, 1);
 		HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
+#endif
 		
-		HAL_NVIC_SetPriority(USART3_6_IRQn, 1, 0);
+		HAL_NVIC_SetPriority(USART3_6_IRQn, 0, 1);
 		HAL_NVIC_EnableIRQ(USART3_6_IRQn);
 	}
 	else if( huart->Instance == USART1 )
@@ -258,10 +259,11 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart)
     PB4     ------> USART5_RX 
     */
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3|GPIO_PIN_4);
-		 
+#ifdef DMA_TR		 
     HAL_DMA_DeInit(huart->hdmatx);
     HAL_DMA_DeInit(huart->hdmarx);
-		
+		HAL_NVIC_DisableIRQ(DMA1_Channel2_3_IRQn);
+#endif		
 		HAL_NVIC_DisableIRQ(USART3_6_IRQn);
 	}
 	else if( huart->Instance == USART1)//
@@ -409,7 +411,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 		HAL_NVIC_EnableIRQ(TIM6_IRQn);
 	}
 }
-
 
 /**
   * @}

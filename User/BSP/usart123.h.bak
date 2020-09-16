@@ -67,7 +67,7 @@ extern "C"
 
 extern UART_HandleTypeDef Uart5Handle;
 extern UART_HandleTypeDef UartHandle[5];//5路串口作为秤盘通信口
-extern uartBuf_t    UartPort[6];        //5路串口接收发送缓冲
+extern uartBuf_t    UartPort;        //5路串口接收发送缓冲
 extern uartISRCfg_t isrCfg[5];          //主串口结构
 
 extern DMA_HandleTypeDef hdma_usart5_tx;
@@ -87,6 +87,7 @@ extern void UsartReceive_IDLE(UART_HandleTypeDef *huart);
 extern void UartTimeOut_handle(void);
 
 extern void HAL_UART12346_IRQHandler(UART_HandleTypeDef *huart, uint8_t index);
+extern void HAL_UART5_IRQHandler(UART_HandleTypeDef *huart);
 
 /*********************************************************************/
 

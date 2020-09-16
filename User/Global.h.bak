@@ -30,32 +30,21 @@ extern "C"
 #define NET_FreeBuffer		free
 
 
-#define INA226_Addr    0x80//8a
-
-
 #define ON                    1
 #define OFF                   0
 
 
-#define Num_10MsBase             5
+#define Num_10MsBase             3
 
 #define ReadScalesDataQueueTask  0
-#define Led_Task                 4
+#define Led_Task                 2
 
 
-#define HAL_UART_ISR_RX_MAX   512
-#define HAL_UART_ISR_TX_MAX   512
-#define BufSize   128 
-#define ScaleFrameLen     12
-#define TimeOutCount   5
-
-
-#define T100ms                 10
-#define T200ms                 20
-#define T400ms                 40
-#define T500ms                 50
-#define T1s                    100
-#define T30s                   3000
+	#define HAL_UART_ISR_RX_MAX   128
+	#define HAL_UART_ISR_TX_MAX   128
+#define BufSize               128 
+#define ScaleFrameLen         12
+#define TimeOutCount          5
 
 
 #define SUCCESS                   0x00

@@ -37,7 +37,7 @@
 #include "main.h"
 #include "TimeEvent.h"
 #include "Global.h"
-#include "AppTask.h"
+//#include "AppTask.h"
 #include "bsp_periph.h"
 #include "UartTask.h"
 /** @addtogroup STM32F0xx_HAL_Examples
@@ -65,7 +65,6 @@ void Error_Handler(void);
 	
 int main(void)
 {
-
   /* STM32F0xx HAL library initialization:
        - Configure the Flash prefetch
        - Systick timer is configured by default as source of time base, but user 
@@ -80,23 +79,33 @@ int main(void)
 	SystemClock_Config();
   BSP_GPIO_Init();
 	
-	USART_Main_Config();
+	//USART_Main_Config();
   UartScalesInit();
-		
+	
 	Variable_Init();
-
+  HalLedSet (HAL_LED_6, HAL_LED_MODE_ON);
+//  HAL_Delay(2000);
 	TIME6BASE_Config();
 	Init_Timer_Event();
-	
-  //IWDG_Config();
-	
+#ifdef WDT	
+  IWDG_Config();
+#endif
+  BSP_GPIO_Init();
   /* Infinite loop */
 	HalLedBlink(HAL_LED_6, 255, 30, 1000);
   while (1)
   {
-		 UartScalesData_Handle( );
-	   Timer_Event_Handle(); 
-
+	  Timer_Event_Handle(); 
+		UartScalesData_Handle( );
+		UartMainDataHandle();
+#ifdef WDT
+		/* Refresh IWDG: reload counter */
+    if(HAL_IWDG_Refresh(&IwdgHandle) != HAL_OK)
+    {
+      /* Refresh Error */
+      Error_Handler();
+    }
+#endif
   }
 }
 
@@ -117,31 +126,76 @@ int main(void)
   */
 static void SystemClock_Config(void)
 {
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   
-  /**Initializes the CPU, AHB and APB busses clocks */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
-  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-  if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//  /**Initializes the CPU, AHB and APB busses clocks */
+//  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+//  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+//  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+//  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+//  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+//  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+//  if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//  {
+//    while(1);
+//  }
+
+//	/**Initializes the CPU, AHB and APB busses clocks */
+//  RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1;
+//  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+//  RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
+//  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+//  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+//  {
+//    while(1);
+//  }
+
+  /* -1- Select HSE bypass as system clock source to allow modification of the PLL configuration */
+//  RCC_ClkInitStruct.ClockType       = RCC_CLOCKTYPE_SYSCLK;
+//  RCC_ClkInitStruct.SYSCLKSource    = RCC_SYSCLKSOURCE_HSE;
+//  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+//  {
+//    /* Initialization Error */
+//    Error_Handler();
+//  }
+
+  /* -2- Enable HSI Oscillator, select it as PLL source and finally activate the PLL */
+  RCC_OscInitStruct.OscillatorType       = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState             = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue  = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState         = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource        = RCC_PLLSOURCE_HSI;
+  /* PLL source is the HSI frequency multiplied by 12 */
+  RCC_OscInitStruct.PLL.PREDIV           = RCC_PREDIV_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL           = RCC_PLL_MUL12;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    while(1);
+    /* Initialization Error */
+    Error_Handler();
   }
 
-	/**Initializes the CPU, AHB and APB busses clocks */
-  RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
+  /* -3- Select the PLL as system clock source and configure the HCLK and PCLK1 clocks dividers */
+  RCC_ClkInitStruct.ClockType       = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1);
+  RCC_ClkInitStruct.SYSCLKSource    = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider   = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider  = RCC_HCLK_DIV1;
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
-    while(1);
+    /* Initialization Error */
+    Error_Handler();
   }
+
+//  /* -4- Optional: Disable HSE bypass Oscillator (if the HSE bypass is no more needed by the application) */
+//  RCC_OscInitStruct.OscillatorType  = RCC_OSCILLATORTYPE_HSE;
+//  RCC_OscInitStruct.HSEState        = RCC_HSE_OFF;
+//  RCC_OscInitStruct.PLL.PLLState    = RCC_PLL_NONE;
+//  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+//  {
+//    /* Initialization Error */
+//    Error_Handler();
+//  }
 }
 
 /**
